@@ -1,0 +1,124 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "d032b4e6",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# %%\n",
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "import matplotlib.pyplot as plt\n",
+    "from io import StringIO"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "0e2b2274",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# %%\n",
+    "def parse_file(filename):\n",
+    "    # Read file into list of lines\n",
+    "    with open(filename, 'r') as f:\n",
+    "        lines = f.readlines()\n",
+    "\n",
+    "    # Extract metadata\n",
+    "    metadata = {}\n",
+    "    for line in lines:\n",
+    "        if line.startswith('Recording'):\n",
+    "            key, value = line.strip().split('\\t')\n",
+    "            metadata[key] = value\n",
+    "\n",
+    "    # Identify start and end of gaze data and event data\n",
+    "    gaze_data_start = lines.index('Session Start\\n') + 1\n",
+    "    gaze_data_end = lines.index('TimeStamp\\tEvent\\n')\n",
+    "    event_data_start = gaze_data_end\n",
+    "    event_data_end = lines.index('Session End\\n')\n",
+    "\n",
+    "    # Convert gaze data and event data sections to pa|ndas dataframes\n",
+    "    gaze_data_lines = lines[gaze_data_start:gaze_data_end]\n",
+    "    event_data_lines = lines[event_data_start:event_data_end]\n",
+    "\n",
+    "    gaze_data = pd.read_csv(StringIO('\\n'.join(gaze_data_lines)), delimiter='\\t')\n",
+    "    event_data = pd.read_csv(StringIO('\\n'.join(event_data_lines)), delimiter='\\t')\n",
+    "\n",
+    "    # Convert 'nan' to np.nan\n",
+    "    gaze_data.replace('nan', np.nan, inplace=True)\n",
+    "\n",
+    "    return metadata, gaze_data, event_data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "67f5a584",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# %%\n",
+    "def find_nearest(array, x):\n",
+    "    array = np.asarray(array)\n",
+    "    idx = (np.abs(array - x)).argmin()\n",
+    "    return idx"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "3d9e27a6",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# %%\n",
+    "# Use gaze_data['TimeStamp'] to segment gaze_data by event_data['TimeStamp']\n",
+    "def epochGazeData(gaze_data, event_data):\n",
+    "    gaze_data_epoch = []\n",
+    "    for iEvent in range(int(len(event_data)/2)):\n",
+    "        onset = event_data['TimeStamp'][2*iEvent]\n",
+    "        offset = event_data['TimeStamp'][2*iEvent+1]\n",
+    "        onset_nearest = find_nearest(gaze_data['TimeStamp'], onset)\n",
+    "        offset_nearest = find_nearest(gaze_data['TimeStamp'], offset) + 1\n",
+    "        gaze_data_epoch.append(gaze_data[onset_nearest:offset_nearest])\n",
+    "    return gaze_data_epoch"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "671d46d1",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# %%\n",
+    "# filename = '../data/pilot01_Phase2_202305251314.tsv'\n",
+    "# filename = '../data/pilot02_Phase2_202305251417.tsv'\n",
+    "filename = '../data/pilot03_Phase2_202305291538.tsv'\n",
+    "metadata, gaze_data, event_data = parse_file(filename)\n",
+    "gaze_data_epoch = epochGazeData(gaze_data, event_data)\n",
+    "\n",
+    " "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "79a97b44",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# %%\n",
+    "# 'GazePointX', 'GazePointY' with x and y limit from 0 to 1\n",
+    "gaze_data_epoch[5].plot(x='GazePointX', y='GazePointY', style='o-', xlim=[0,1], ylim=[0,1])\n",
+    "plt.gca().set_aspect('equal', adjustable='box')"
+   ]
+  }
+ ],
+ "metadata": {},
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
