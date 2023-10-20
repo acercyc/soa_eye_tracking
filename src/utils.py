@@ -333,7 +333,8 @@ class Visualisation:
             Visualisation.animateXY(x, y, savepath=filename, **kwargs)
     
    
-Visualisation.qAnimateXY(1, [1, 2, 3]) 
+# Visualisation.qAnimateXY(1, [1, 2, 3]) 
+# Visualisation.qAnimateXY(10, 8) 
 # gaze_data_epoch = Data.loadEyeData_epoched(1, 2)
 # x, y = Preprocessing.gaze_data2xy(gaze_data_epoch[0])
 # data = np.array(xy).transpose()
